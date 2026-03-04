@@ -2,20 +2,24 @@ import productsData from '@/sample-products.json';
 
 export interface Product {
   stacklineSku: string;
-  featureBullets: string[];
-  imageUrls: string[];
+  featureBullets?: string[];
+  imageUrls?: string[];
   subCategoryId: number;
   title: string;
   categoryName: string;
   retailerSku: string;
   categoryId: number;
   subCategoryName: string;
+  retailPrice?: number;
 }
+
+export type SortBy = "default" | "price-asc" | "price-desc" | "name-asc" | "name-desc";
 
 export interface ProductFilters {
   category?: string;
   subCategory?: string;
   search?: string;
+  sortBy?: SortBy;
   limit?: number;
   offset?: number;
 }
@@ -50,6 +54,21 @@ export class ProductService {
           p.categoryName.toLowerCase().includes(searchLower) ||
           p.subCategoryName.toLowerCase().includes(searchLower)
       );
+    }
+
+    switch (filters?.sortBy) {
+      case "price-asc":
+        filtered.sort((a, b) => (a.retailPrice ?? 0) - (b.retailPrice ?? 0));
+        break;
+      case "price-desc":
+        filtered.sort((a, b) => (b.retailPrice ?? 0) - (a.retailPrice ?? 0));
+        break;
+      case "name-asc":
+        filtered.sort((a, b) => a.title.localeCompare(b.title));
+        break;
+      case "name-desc":
+        filtered.sort((a, b) => b.title.localeCompare(a.title));
+        break;
     }
 
     const offset = filters?.offset || 0;

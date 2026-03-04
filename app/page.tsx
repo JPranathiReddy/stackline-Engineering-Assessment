@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -28,59 +28,93 @@ interface Product {
   title: string;
   categoryName: string;
   subCategoryName: string;
-  imageUrls: string[];
+  imageUrls?: string[];
+  retailPrice?: number;
 }
 
 export default function Home() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [subCategories, setSubCategories] = useState<string[]>([]);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(searchParams.get("search") || "");
+  const [debouncedSearch, setDebouncedSearch] = useState(searchParams.get("search") || "");
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>(
-    undefined
+    searchParams.get("category") || undefined
   );
   const [selectedSubCategory, setSelectedSubCategory] = useState<
     string | undefined
-  >(undefined);
+  >(searchParams.get("subCategory") || undefined);
+  const [sortBy, setSortBy] = useState(searchParams.get("sortBy") || "default");
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [total, setTotal] = useState(0);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(Number(searchParams.get("page")) || 1);
   const PAGE_SIZE = 20;
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
   useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (debouncedSearch) params.set("search", debouncedSearch);
+    if (selectedCategory) params.set("category", selectedCategory);
+    if (selectedSubCategory) params.set("subCategory", selectedSubCategory);
+    if (sortBy !== "default") params.set("sortBy", sortBy);
+    if (currentPage > 1) params.set("page", String(currentPage));
+    router.replace(`/?${params.toString()}`, { scroll: false });
+  }, [debouncedSearch, selectedCategory, selectedSubCategory, sortBy, currentPage]);
+
+  useEffect(() => {
     fetch("/api/categories")
       .then((res) => res.json())
-      .then((data) => setCategories(data.categories));
+      .then((data) => setCategories(data.categories))
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
     if (selectedCategory) {
       fetch(`/api/subcategories?category=${encodeURIComponent(selectedCategory)}`)
         .then((res) => res.json())
-        .then((data) => setSubCategories(data.subCategories));
+        .then((data) => setSubCategories(data.subCategories))
+        .catch(() => {});
     } else {
       setSubCategories([]);
     }
   }, [selectedCategory]);
 
   useEffect(() => {
+    const controller = new AbortController();
     setLoading(true);
+    setError(false);
     const params = new URLSearchParams();
-    if (search) params.append("search", search);
+    if (debouncedSearch) params.append("search", debouncedSearch);
     if (selectedCategory) params.append("category", selectedCategory);
     if (selectedSubCategory) params.append("subCategory", selectedSubCategory);
+    if (sortBy !== "default") params.append("sortBy", sortBy);
     params.append("limit", String(PAGE_SIZE));
     params.append("offset", String((currentPage - 1) * PAGE_SIZE));
 
-    fetch(`/api/products?${params}`)
+    fetch(`/api/products?${params}`, { signal: controller.signal })
       .then((res) => res.json())
       .then((data) => {
         setProducts(data.products);
         setTotal(data.total);
         setLoading(false);
+      })
+      .catch((err) => {
+        if (err.name !== "AbortError") {
+          setError(true);
+          setLoading(false);
+        }
       });
-  }, [search, selectedCategory, selectedSubCategory, currentPage]);
+
+    return () => controller.abort();
+  }, [debouncedSearch, selectedCategory, selectedSubCategory, sortBy, currentPage]);
 
   const goToPage = (page: number) => {
     setCurrentPage(page);
@@ -152,7 +186,22 @@ export default function Home() {
               </Select>
             )}
 
-            {(search || selectedCategory || selectedSubCategory) && (
+            <Select
+              value={sortBy === "default" ? "" : sortBy}
+              onValueChange={(value) => { setCurrentPage(1); setSortBy(value); }}
+            >
+              <SelectTrigger className="w-full md:w-[180px]">
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="price-asc">Price: Low to High</SelectItem>
+                <SelectItem value="price-desc">Price: High to Low</SelectItem>
+                <SelectItem value="name-asc">Name: A–Z</SelectItem>
+                <SelectItem value="name-desc">Name: Z–A</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {(search || selectedCategory || selectedSubCategory || sortBy !== "default") && (
               <Button
                 variant="outline"
                 onClick={() => {
@@ -160,6 +209,7 @@ export default function Home() {
                   setSearch("");
                   setSelectedCategory(undefined);
                   setSelectedSubCategory(undefined);
+                  setSortBy("default");
                 }}
               >
                 Clear Filters
@@ -173,6 +223,10 @@ export default function Home() {
         {loading ? (
           <div className="text-center py-12">
             <p className="text-muted-foreground">Loading products...</p>
+          </div>
+        ) : error ? (
+          <div className="text-center py-12">
+            <p className="text-destructive">Failed to load products. Please try again.</p>
           </div>
         ) : products.length === 0 ? (
           <div className="text-center py-12">
@@ -192,7 +246,7 @@ export default function Home() {
                   <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer">
                     <CardHeader className="p-0">
                       <div className="relative h-48 w-full overflow-hidden rounded-t-lg bg-muted">
-                        {product.imageUrls[0] && (
+                        {product.imageUrls?.[0] && (
                           <Image
                             src={product.imageUrls[0]}
                             alt={product.title}
@@ -207,6 +261,9 @@ export default function Home() {
                       <CardTitle className="text-base line-clamp-2 mb-2">
                         {product.title}
                       </CardTitle>
+                      {product.retailPrice && (
+                        <p className="text-lg font-semibold text-green-600 mb-2">${product.retailPrice.toFixed(2)}</p>
+                      )}
                       <CardDescription className="flex gap-2 flex-wrap">
                         <Badge variant="secondary">
                           {product.categoryName}
@@ -216,11 +273,6 @@ export default function Home() {
                         </Badge>
                       </CardDescription>
                     </CardContent>
-                    <CardFooter>
-                      <Button variant="outline" className="w-full">
-                        View Details
-                      </Button>
-                    </CardFooter>
                   </Card>
                 </Link>
               ))}
