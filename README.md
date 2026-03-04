@@ -32,3 +32,12 @@ The application contains various bugs including UX issues, design problems, func
 
 ---
 
+### 3. Subcategories not filtered by selected category
+**Issue:** `fetch('/api/subcategories')` never passed the selected category, so the dropdown always showed all subcategories across every category instead of only those relevant to the selection.
+
+**Fix:** Added `?category=` param to the fetch. The API already supported this — it just wasn't being called correctly.
+
+**Why:** One missing query param was the entire bug. No API changes needed.
+
+---
+

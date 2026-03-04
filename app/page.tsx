@@ -56,12 +56,11 @@ export default function Home() {
 
   useEffect(() => {
     if (selectedCategory) {
-      fetch(`/api/subcategories`)
+      fetch(`/api/subcategories?category=${encodeURIComponent(selectedCategory)}`)
         .then((res) => res.json())
         .then((data) => setSubCategories(data.subCategories));
     } else {
       setSubCategories([]);
-      setSelectedSubCategory(undefined);
     }
   }, [selectedCategory]);
 
@@ -118,8 +117,9 @@ export default function Home() {
             </div>
 
             <Select
+              key={selectedCategory ?? "__none__"}
               value={selectedCategory}
-              onValueChange={(value) => { setCurrentPage(1); setSelectedCategory(value || undefined); }}
+              onValueChange={(value) => { setCurrentPage(1); setSelectedCategory(value || undefined); setSelectedSubCategory(undefined); }}
             >
               <SelectTrigger className="w-full md:w-[200px]">
                 <SelectValue placeholder="All Categories" />
@@ -135,6 +135,7 @@ export default function Home() {
 
             {selectedCategory && subCategories.length > 0 && (
               <Select
+                key={selectedSubCategory ?? "__none__"}
                 value={selectedSubCategory}
                 onValueChange={(value) => { setCurrentPage(1); setSelectedSubCategory(value || undefined); }}
               >
