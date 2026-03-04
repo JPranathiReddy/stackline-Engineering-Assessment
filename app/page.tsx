@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search } from "lucide-react";
+import { Search, X } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -32,7 +32,7 @@ interface Product {
   retailPrice?: number;
 }
 
-export default function Home() {
+function HomeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [products, setProducts] = useState<Product[]>([]);
@@ -67,7 +67,7 @@ export default function Home() {
     if (sortBy !== "default") params.set("sortBy", sortBy);
     if (currentPage > 1) params.set("page", String(currentPage));
     router.replace(`/?${params.toString()}`, { scroll: false });
-  }, [debouncedSearch, selectedCategory, selectedSubCategory, sortBy, currentPage]);
+  }, [router, debouncedSearch, selectedCategory, selectedSubCategory, sortBy, currentPage]);
 
   useEffect(() => {
     fetch("/api/categories")
@@ -146,75 +146,99 @@ export default function Home() {
                 placeholder="Search products..."
                 value={search}
                 onChange={(e) => { setCurrentPage(1); setSearch(e.target.value); }}
-                className="pl-10"
+                className="pl-10 pr-8"
               />
+              {search && (
+                <button
+                  onClick={() => { setCurrentPage(1); setSearch(""); }}
+                  className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
             </div>
 
-            <Select
-              key={selectedCategory ?? "__none__"}
-              value={selectedCategory}
-              onValueChange={(value) => { setCurrentPage(1); setSelectedCategory(value || undefined); setSelectedSubCategory(undefined); }}
-            >
-              <SelectTrigger className="w-full md:w-[200px]">
-                <SelectValue placeholder="All Categories" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map((cat) => (
-                  <SelectItem key={cat} value={cat}>
-                    {cat}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {selectedCategory && subCategories.length > 0 && (
+            <div className="flex items-center gap-1">
               <Select
-                key={selectedSubCategory ?? "__none__"}
-                value={selectedSubCategory}
-                onValueChange={(value) => { setCurrentPage(1); setSelectedSubCategory(value || undefined); }}
+                key={selectedCategory ?? "__none__"}
+                value={selectedCategory}
+                onValueChange={(value) => { setCurrentPage(1); setSelectedCategory(value || undefined); setSelectedSubCategory(undefined); }}
               >
                 <SelectTrigger className="w-full md:w-[200px]">
-                  <SelectValue placeholder="All Subcategories" />
+                  <SelectValue placeholder="All Categories" />
                 </SelectTrigger>
                 <SelectContent>
-                  {subCategories.map((subCat) => (
-                    <SelectItem key={subCat} value={subCat}>
-                      {subCat}
+                  {categories.map((cat) => (
+                    <SelectItem key={cat} value={cat}>
+                      {cat}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {selectedCategory && (
+                <button
+                  onClick={() => { setCurrentPage(1); setSelectedCategory(undefined); setSelectedSubCategory(undefined); }}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+
+            {selectedCategory && subCategories.length > 0 && (
+              <div className="flex items-center gap-1">
+                <Select
+                  key={selectedSubCategory ?? "__none__"}
+                  value={selectedSubCategory}
+                  onValueChange={(value) => { setCurrentPage(1); setSelectedSubCategory(value || undefined); }}
+                >
+                  <SelectTrigger className="w-full md:w-[200px]">
+                    <SelectValue placeholder="All Subcategories" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {subCategories.map((subCat) => (
+                      <SelectItem key={subCat} value={subCat}>
+                        {subCat}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {selectedSubCategory && (
+                  <button
+                    onClick={() => { setCurrentPage(1); setSelectedSubCategory(undefined); }}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
             )}
 
-            <Select
-              value={sortBy === "default" ? "" : sortBy}
-              onValueChange={(value) => { setCurrentPage(1); setSortBy(value); }}
-            >
-              <SelectTrigger className="w-full md:w-[180px]">
-                <SelectValue placeholder="Sort by" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="price-asc">Price: Low to High</SelectItem>
-                <SelectItem value="price-desc">Price: High to Low</SelectItem>
-                <SelectItem value="name-asc">Name: A–Z</SelectItem>
-                <SelectItem value="name-desc">Name: Z–A</SelectItem>
-              </SelectContent>
-            </Select>
-
-            {(search || selectedCategory || selectedSubCategory || sortBy !== "default") && (
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setCurrentPage(1);
-                  setSearch("");
-                  setSelectedCategory(undefined);
-                  setSelectedSubCategory(undefined);
-                  setSortBy("default");
-                }}
+            <div className="flex items-center gap-1">
+              <Select
+                value={sortBy === "default" ? "" : sortBy}
+                onValueChange={(value) => { setCurrentPage(1); setSortBy(value || "default"); }}
               >
-                Clear Filters
-              </Button>
-            )}
+                <SelectTrigger className="w-full md:w-[180px]">
+                  <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="default">Default</SelectItem>
+                  <SelectItem value="price-asc">Price: Low to High</SelectItem>
+                  <SelectItem value="price-desc">Price: High to Low</SelectItem>
+                  <SelectItem value="name-asc">Name: A–Z</SelectItem>
+                  <SelectItem value="name-desc">Name: Z–A</SelectItem>
+                </SelectContent>
+              </Select>
+              {sortBy !== "default" && (
+                <button
+                  onClick={() => { setCurrentPage(1); setSortBy("default"); }}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </header>
@@ -315,5 +339,13 @@ export default function Home() {
         )}
       </main>
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense>
+      <HomeContent />
+    </Suspense>
   );
 }

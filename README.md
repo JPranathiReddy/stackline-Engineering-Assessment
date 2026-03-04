@@ -136,8 +136,17 @@ Reviewed the codebase by reading each component and API route top-to-bottom, the
 ### 12. Sort by price and name added to product listing
 **Issue:** Products always appeared in JSON insertion order with no way to sort by price or name.
 
-**Fix:** Added a "Sort by" dropdown with four options: Price Low→High, Price High→Low, Name A→Z, Name Z→A. Sorting is implemented in `lib/products.ts` (`getAll`), parsed and validated in the API route, and synced to the URL (`?sortBy=price-asc`) so sort order persists across navigation.
+**Fix:** Added a "Sort by" dropdown with five options: Default, Price Low→High, Price High→Low, Name A→Z, Name Z→A. Sorting is implemented in `lib/products.ts` (`getAll`), parsed and validated in the API route, and synced to the URL (`?sortBy=price-asc`) so sort order persists across navigation.
 
 **Why:** Sorting by price and name are standard e-commerce expectations that significantly improve browsability.
+
+---
+
+### 13. Filter UX — individual clear buttons per filter
+**Issue:** A single "Clear Filters" button cleared all filters at once, making it impossible to remove just one filter without losing the others.
+
+**Fix:** Replaced the single "Clear Filters" button with individual × buttons next to each active filter — search input, category, subcategory, and sort. Each × only clears its own filter. The sort dropdown also includes a "Default" option for explicit reset from within the dropdown itself.
+
+**Why:** Users should be able to adjust one filter without disrupting the others — this is the standard pattern in e-commerce filter UIs.
 
 ---
