@@ -7,31 +7,19 @@ This is a sample eCommerce website that includes:
 - Search Results Page
 - Product Detail Page
 
-The application contains various bugs including UX issues, design problems, functionality bugs, and potential security vulnerabilities.
+The application contains various bugs including UX issues, design problems, functionality bugs, and potential security vulnerabilities
 
-## Getting Started
 
-```bash
-yarn install
-yarn dev
-```
+---
 
-## Your Task
+## Issues
 
-1. **Identify and fix bugs** - Review the application thoroughly and fix any issues you find
-2. **Document your work** - Create a comprehensive README that includes:
-   - What bugs/issues you identified
-   - How you fixed each issue
-   - Why you chose your approach
-   - Any improvements or enhancements you made
+### 1. Product data passed via URL query string 
+**Issue:** Clicking a product serialized the full product object (images, bullets, etc.) as JSON into the URL query string. This breaks for large products (URL length limits) and exposes raw data in the browser history.
 
-We recommend spending no more than 2 hours on this assignment. We are more interested in the quality of your work and your communication than the amount of time you spend or how many bugs you fix!
+**Fix:** Replaced with a proper dynamic route `/product/[sku]`. The page now fetches product data from the existing `/api/products/[sku]` endpoint using the SKU from the URL path.
 
-## Submission
+**Why:** Clean URL, no data exposure, no length limit risk, and aligns with REST conventions already in place.
 
-- Fork this repository
-- Make your fixes and improvements
-- **Replace this README** with your own that clearly documents all changes and your reasoning
-- Provide your Stackline contact with a link to a git repository where you have committed your changes
+---
 
-We're looking for clear communication about your problem-solving process as much as the technical fixes themselves.

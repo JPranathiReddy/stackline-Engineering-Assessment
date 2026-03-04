@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -20,21 +20,37 @@ interface Product {
 }
 
 export default function ProductPage() {
-  const searchParams = useSearchParams();
-  const productParam = searchParams.get('product');
+  const { sku } = useParams<{ sku: string }>();
   const [product, setProduct] = useState<Product | null>(null);
   const [selectedImage, setSelectedImage] = useState(0);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (productParam) {
-      try {
-        const parsedProduct = JSON.parse(productParam);
-        setProduct(parsedProduct);
-      } catch (error) {
-        console.error('Failed to parse product data:', error);
-      }
-    }
-  }, [productParam]);
+    fetch(`/api/products/${sku}`)
+      .then((res) => res.json())
+      .then((data) => {
+        setProduct(data.error ? null : data);
+        setLoading(false);
+      });
+  }, [sku]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-8">
+          <Link href="/">
+            <Button variant="ghost" className="mb-4">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Products
+            </Button>
+          </Link>
+          <Card className="p-8">
+            <p className="text-center text-muted-foreground">Loading product...</p>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   if (!product) {
     return (
