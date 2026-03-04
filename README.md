@@ -23,3 +23,12 @@ The application contains various bugs including UX issues, design problems, func
 
 ---
 
+### 2. No pagination — only 20 products ever shown
+**Issue:** The API supported `limit`/`offset` and returned a `total` count, but the UI hardcoded `limit=20` with no way to browse further. Users could never see beyond the first 20 products.
+
+**Fix:** Added numbered pagination (Previous / 1 2 … N / Next) with 20 products per page. Counter shows "Showing 1–20 of 500 products". Any filter or search change resets to page 1. Also fixed a missing Amazon image hostname in `next.config.ts` that only surfaced when navigating past page 1.
+
+**Why:** Numbered pages let users know their position in the catalog and navigate directly to any page — better UX than append-only for a product listing.
+
+---
+
